@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="it" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analisi Mercato Turistico Monza 2025 - Dashboard Strategica Investitori</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js 4.4.1 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+
+        .nav-active {
+            background-color: #e0f2fe;
+            color: #0284c7;
+            font-weight: 600;
+            border-right: 4px solid #0284c7;
+        }
+
+        .sidebar {
+            transition: transform 0.3s ease-in-out;
+        }
+
+        @media (max-width: 1023px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+        }
+
+        input[type=range] {
+            accent-color: #0284c7;
+        }
+    </style>
+
+    <!-- Chosen Palette: Coastal Calm (BG: gray-50 / slate-50, Text: gray-800 / slate-800, Accent: sky-600 / sky-700, Cards: white) -->
+    <!-- Application Structure Plan:
+         L'app è strutturata come un cruscotto interattivo avanzato con navigazione laterale sidebar (a scomparsa su mobile con pulsante hamburger). Le sezioni operative per l'investitore sono:
+         1. 'Cruscotto' (KPI sintetici di alto livello, flussi e stagionalità con grafico dinamico)
+         2. 'Analisi di Mercato' (Arrivi, presenze, provenienza turisti e ripartizione offerta alberghiera vs extra-alberghiera)
+         3. 'Analisi Competitiva' (Prezzi medi per notte ADR e saturazione per tipologia con selettore interattivo 'propertyTypeSelector', SWOT dei competitor)
+         4. 'Domanda & Trend' (I 3 driver fondamentali, recensioni medie, canali OTA e Motore/Calendario Eventi 2025 con filtri)
+         5. 'Strategia & Fisco' (Matrice strategie Rent-to-Rent vs Buy-to-Let, Target profittevole, posizionamento unico, normativa CIN e Fisco 2025/2026)
+         6. 'Piano d'Azione & ROI' (Calcolatore dinamico di redditività netta e checklist operativa in 5 mosse)
+         MOTIVAZIONE: Questa architettura permette all'investitore immobiliare di passare in modo intuitivo dal quadro macro economico della destinazione fino alle simulazioni finanziarie operative sul singolo immobile.
+    -->
+    <!-- Visualization & Content Choices:
+         - KPI Cards (Cruscotto): Goal: Informare. Method: Responsive Tailwind Cards. Interaction: Visual feedback.
+         - Stagionalità (Cruscotto): Goal: Trend mensile. Method: Chart.js Line/Bar Canvas Chart. Interaction: Toggle métrica (ADR / Occupazione / RevPAR).
+         - Provenienza Turisti (Mercato): Goal: Proporzione. Method: Doughnut Chart (Chart.js). Interaction: Hover tooltips.
+         - Offerta Ricettiva (Mercato): Goal: Confronto quote. Method: Horizontal Bar Chart (Chart.js).
+         - Prezzi & Occupazione (Competitiva): Goal: Analisi dettagliata per tipologia. Method: Dynamic Chart.js Bar Chart driven by HTML `<select id="propertyTypeSelector">`. Justification: Permette all'investitore di confrontare al volo bilocali, trilocali e ville.
+         - Calendario Opportunità 2025 (Domanda): Goal: Date azionabili. Method: Interactive Event Cards with category filter JS.
+         - Calcolatore ROI (Piano): Goal: Simulazione finanziaria. Method: Dynamic JS input sliders calculating gross income, platform fees, taxes, net cash flow, and ROI %.
+         - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="bg-gray-50 text-gray-800 antialiased min-h-screen flex flex-col lg:flex-row">
+
+    <!-- Mobile Header Bar -->
+    <div class="lg:hidden bg-slate-900 text-white p-4 flex justify-between items-center sticky top-0 z-50 border-b border-slate-800">
+        <div class="flex items-center space-x-2">
+            <span class="text-2xl">🏎️</span>
+            <div>
+                <h1 class="font-bold text-sm leading-tight">Monza Invest 2025</h1>
+                <p class="text-[10px] text-sky-400">Analisi Mercato Turistico</p>
+            </div>
+        </div>
+        <button onclick="toggleSidebar()" class="p-2 bg-slate-800 rounded-lg text-gray-200 hover:text-white focus:outline-none">
+            <span class="text-xl">☰</span>
+        </button>
+    </div>
+
+    <!-- Sidebar Overlay for Mobile -->
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 hidden lg:hidden"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar" class="sidebar fixed lg:static inset-y-0 left-0 w-64 bg-slate-900 text-slate-300 z-50 flex flex-col justify-between border-r border-slate-800 flex-shrink-0">
+        <div>
+            <!-- Sidebar Header -->
+            <div class="p-6 border-b border-slate-800 hidden lg:block">
+                <div class="flex items-center space-x-3">
+                    <span class="text-3xl">🏎️</span>
+                    <div>
+                        <h1 class="font-bold text-white text-base leading-snug">Monza Turistica</h1>
+                        <p class="text-xs text-sky-400 font-medium">Studio d'Investimento 2025</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="p-4 space-y-1 text-sm font-medium">
+                <button onclick="showSection('cruscotto')" id="nav-cruscotto" class="w-full text-left px-4 py-3 rounded-lg flex items-center space-x-3 hover:bg-slate-800 transition nav-active">
+                    <span>📊</span>
+                    <span>Cruscotto Macro</span>
+                </button>
+                <button onclick="showSection('mercato')" id="nav-mercato" class="w-full text-left px-4 py-3 rounded-lg flex items-center space-x-3 hover:bg-slate-800 transition">
+                    <span>📈</span>
+                    <span>Analisi di Mercato</span>
+                </button>
+                <button onclick="showSection('competitiva')" id="nav-competitiva" class="w-full text-left px-4 py-3 rounded-lg flex items-center space-x-3 hover:bg-slate-800 transition">
+                    <span>🏨</span>
+                    <span>Analisi Competitiva</span>
+                </button>
+                <button onclick="showSection('domanda')" id="nav-domanda" class="w-full text-left px-4 py-3 rounded-lg flex items-center space-x-3 hover:bg-slate-800 transition">
+                    <span>📅</span>
+                    <span>Domanda & Eventi '25</span>
+                </button>
+                <button onclick="showSection('strategia')" id="nav-strategia" class="w-full text-left px-4 py-3 rounded-lg flex items-center space-x-3 hover:bg-slate-800 transition">
+                    <span>💡</span>
+                    <span>Strategia & Fisco</span>
+                </button>
+                <button onclick="showSection('piano')" id="nav-piano" class="w-full text-left px-4 py-3 rounded-lg flex items-center space-x-3 hover:bg-slate-800 transition">
+                    <span>🚀</span>
+                    <span>Piano & Calcolatore ROI</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- Sidebar Footer Status -->
+        <div class="p-4 border-t border-slate-800 text-xs text-slate-400 space-y-2">
+            <div class="flex items-center justify-between">
+                <span>Focus Anno:</span>
+                <span class="px-2 py-0.5 bg-sky-950 text-sky-300 font-bold rounded border border-sky-800">2025 / 2026</span>
+            </div>
+            <p class="text-[11px] leading-relaxed text-slate-500">Destinazione Monza & Brianza. Proiezioni per Buy-to-Let e Rent-to-Rent.</p>
+        </div>
+    </aside>
+
+    <!-- Main Viewport Area -->
+    <main class="flex-grow p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full overflow-y-auto">
+
+        <!-- ==================== SEZIONE 1: CRUSCOTTO ==================== -->
+        <section id="section-cruscotto" class="space-y-6">
+            <!-- Intro Card -->
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900">Panoramica Strategica Monza 2025</h2>
+                        <p class="text-gray-600 text-sm mt-1">
+                            Report sintetico d'investimento turistico e immobiliare. Analisi dei flussi turistici, stagionalità, e proiezioni di rendimento per la piazza di Monza.
+                        </p>
+                    </div>
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 self-start md:self-center">
+                        ● Mercato in Espansione (+8,5% YoY)
+                    </span>
+                </div>
+            </div>
+
+            <!-- KPI Cards Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm border-l-4 border-l-sky-600">
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Arrivi Turistici Annuali</p>
+                    <p class="text-2xl font-extrabold text-gray-900 mt-1">~588.000</p>
+                    <p class="text-xs text-sky-600 font-medium mt-1">Provincia di Monza e Brianza</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm border-l-4 border-l-sky-600">
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Presenze (Pernottamenti)</p>
+                    <p class="text-2xl font-extrabold text-gray-900 mt-1">> 1,18 M</p>
+                    <p class="text-xs text-gray-500 mt-1">Permanenza media: ~2,01 notti</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm border-l-4 border-l-emerald-600">
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Fatturato Medio Annuo / Unità</p>
+                    <p class="text-2xl font-extrabold text-emerald-700 mt-1">€21.000 - €24.300</p>
+                    <p class="text-xs text-gray-500 mt-1">Stima bilocale a regime</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm border-l-4 border-l-amber-500">
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">RevPAR Top 10% Host</p>
+                    <p class="text-2xl font-extrabold text-amber-600 mt-1">€88 / notte</p>
+                    <p class="text-xs text-gray-500 mt-1">Picco F1 Settembre: >€450/notte</p>
+                </div>
+            </div>
+
+            <!-- Interactive Seasonality Chart Card -->
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                            <span>📈</span> Stagionalità Turistica 2025: Tariffe e Occupazione Mensile
+                        </h3>
+                        <p class="text-xs text-gray-500">Confronta l'andamento del prezzo medio per notte (ADR), dell'occupazione (%) e del RevPAR lungo i 12 mesi.</p>
+                    </div>
+                    <div class="inline-flex rounded-lg border border-gray-200 p-1 bg-gray-50 text-xs font-medium">
+                        <button onclick="updateSeasonalityMetric('adr')" id="btn-season-adr" class="px-3 py-1.5 rounded-md bg-white shadow-sm text-sky-700 font-bold">ADR (€)</button>
+                        <button onclick="updateSeasonalityMetric('occ')" id="btn-season-occ" class="px-3 py-1.5 rounded-md text-gray-600">Occupazione (%)</button>
+                        <button onclick="updateSeasonalityMetric('revpar')" id="btn-season-revpar" class="px-3 py-1.5 rounded-md text-gray-600">RevPAR (€)</button>
+                    </div>
+                </div>
+
+                <!-- Chart Container -->
+                <div class="chart-container">
+                    <canvas id="seasonalityChart"></canvas>
+                </div>
+
+                <div class="bg-sky-50 border border-sky-200 rounded-lg p-4 text-xs sm:text-sm text-sky-900 flex items-start gap-3">
+                    <span class="text-xl">💡</span>
+                    <div>
+                        <strong>Evidenza Strategica:</strong> La domanda presenta due picchi principali: <strong>Settembre</strong> (Gran Premio F1 con tariffe fino a 5x) e <strong>Aprile</strong> (Salone del Mobile di Milano). Nei mesi invernali e estivi, la presenza dell'Ospedale IRCCS San Gerardo garantisce una base costante di occupazione (38-44%), evitando lo sfitto.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SEZIONE 2: ANALISI DI MERCATO ==================== -->
+        <section id="section-mercato" class="space-y-6 hidden">
+            <!-- Intro Card -->
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <h2 class="text-2xl font-bold text-gray-900">Analisi della Domanda e Struttura dell'Offerta</h2>
+                <p class="text-gray-600 text-sm mt-1">
+                    Approfondimento sui flussi turistici in ingresso a Monza, provenienza dei turisti e composizione della capacità ricettiva (Alberghiero vs Extra-alberghiero).
+                </p>
+            </div>
+
+            <!-- Charts Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Chart 1: Provenienza Turisti -->
+                <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-3">
+                    <h3 class="text-base font-bold text-gray-900 flex items-center gap-2">
+                        <span>🌐</span> Provenienza dei Turisti
+                    </h3>
+                    <p class="text-xs text-gray-500">Ripartizione del bacino d'utenza tra mercato domestico e internazionale.</p>
+                    <div class="chart-container">
+                        <canvas id="originChart"></canvas>
+                    </div>
+                    <div class="p-3 bg-gray-50 rounded-lg text-xs text-gray-600 space-y-1">
+                        <p><strong>Mercato Estero (64% nei picchi):</strong> Germania, Svizzera, Regno Unito, USA, Francia. Target ad alta capacità di spesa per F1 e cultura.</p>
+                        <p><strong>Mercato Italiano (36% continuativo):</strong> Familiari di pazienti (San Gerardo), lavoratori trasfertisti e visitatori business.</p>
+                    </div>
+                </div>
+
+                <!-- Chart 2: Offerta Ricettiva -->
+                <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-3">
+                    <h3 class="text-base font-bold text-gray-900 flex items-center gap-2">
+                        <span>🏨</span> Composizione dell'Offerta Ricettiva
+                    </h3>
+                    <p class="text-xs text-gray-500">Confronto tra strutture extra-alberghiere e alberghiere sul territorio monzese.</p>
+                    <div class="chart-container">
+                        <canvas id="supplyChart"></canvas>
+                    </div>
+                    <div class="p-3 bg-gray-50 rounded-lg text-xs text-gray-600 space-y-1">
+                        <p><strong>Extra-alberghiero in forte crescita:</strong> Oltre 350 appartamenti e B&B attivi su Airbnb e Booking.com.</p>
+                        <p><strong>Settore Alberghiero:</strong> Hotel tradizionali principalmente concentrati sul segmento corporate con tariffari rigidi.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SEZIONE 3: ANALISI COMPETITIVA ==================== -->
+        <section id="section-competitiva" class="space-y-6 hidden">
+            <!-- Intro Card -->
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <h2 class="text-2xl font-bold text-gray-900">Analisi Competitiva e Performance per Tipologia</h2>
+                <p class="text-gray-600 text-sm mt-1">
+                    Esplora i prezzi medi per notte (ADR), il livello di occupazione stimato e il posizionamento strategico per ciascuna tipologia di immobile presente a Monza nel 2025.
+                </p>
+            </div>
+
+            <!-- Dynamic Property Selector Interactive Section -->
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                            <span>🔍</span> Selettore Tipologia Immobile per Analisi Dettagliata
+                        </h3>
+                        <p class="text-xs text-gray-500">Seleziona la tipologia di immobile per isolare le metriche finanziarie e di occupazione.</p>
+                    </div>
+                    <!-- Property Type Selector Dropdown -->
+                    <div class="w-full sm:w-64">
+                        <label for="propertyTypeSelector" class="block text-xs font-semibold text-gray-700 mb-1">Tipologia Alloggio:</label>
+                        <select id="propertyTypeSelector" onchange="updatePropertyAnalysis()" class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm font-semibold text-gray-800 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                            <option value="all">Tutte le Tipologie (Confronto)</option>
+                            <option value="room">Stanza / Affittacamere</option>
+                            <option value="bilocale" selected>Bilocale (1 Camera) - SWEET SPOT</option>
+                            <option value="trilocale">Trilocale (2 Camere)</option>
+                            <option value="quadrilocale">Quadrilocale / Attico</option>
+                            <option value="villa">Villa Indipendente</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Dynamic Chart and Cards Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <!-- Dynamic Chart Container -->
+                    <div class="lg:col-span-7">
+                        <div class="chart-container">
+                            <canvas id="propertyDynamicChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Details Card -->
+                    <div class="lg:col-span-5 bg-gray-50 p-5 rounded-xl border border-gray-200 space-y-4 flex flex-col justify-between">
+                        <div>
+                            <span id="prop-badge" class="px-2.5 py-1 bg-sky-100 text-sky-800 font-bold rounded-full text-xs">Bilocale Standard</span>
+                            <h4 id="prop-title" class="text-xl font-extrabold text-gray-900 mt-2">Bilocale (1 Camera da Letto)</h4>
+                            <p id="prop-desc" class="text-xs text-gray-600 mt-2 leading-relaxed">
+                                Rappresenta l'immobile ideale per investire a Monza. Bilancia costi d'acquisto controllati con una forte domanda continuativa da parte di caregiver sanitarie, coppie in visita e lavoratori trasfertisti.
+                            </p>
+
+                            <div class="mt-4 grid grid-cols-2 gap-3 text-center">
+                                <div class="bg-white p-3 rounded-lg border border-gray-200">
+                                    <p class="text-[10px] text-gray-500 uppercase font-bold">ADR Medio Standard</p>
+                                    <p id="prop-adr" class="text-lg font-black text-sky-700 mt-0.5">€90 - €140</p>
+                                </div>
+                                <div class="bg-white p-3 rounded-lg border border-gray-200">
+                                    <p class="text-[10px] text-gray-500 uppercase font-bold">Occupazione Stimata</p>
+                                    <p id="prop-occ" class="text-lg font-black text-emerald-700 mt-0.5">60% - 65%</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-3 bg-white rounded-lg border border-gray-200 text-xs text-gray-700">
+                            <strong>Valutazione Investitore:</strong> <span id="prop-eval">Massima liquidità di mercato e miglior rapporto rendimento/costo di gestione.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Competitor SWOT Matrix -->
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
+                <h3 class="text-base font-bold text-gray-900 flex items-center gap-2">
+                    <span>🥊</span> Punti di Forza e Debolezza dei Competitor Attuali
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Residence & Hotel -->
+                    <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-2 text-xs">
+                        <div class="flex justify-between items-center border-b border-gray-200 pb-2">
+                            <span class="font-bold text-gray-900 text-sm">Residence & Hotel Tradizionali</span>
+                            <span class="px-2 py-0.5 bg-gray-200 text-gray-800 rounded font-bold text-[10px]">Strutture Collaudate</span>
+                        </div>
+                        <p class="text-emerald-700 font-semibold">✔️ Punti di Forza:</p>
+                        <p class="text-gray-600 pl-2">Convenzioni storiche con San Gerardo, parcheggio interno, servizio reception.</p>
+                        <p class="text-rose-700 font-semibold mt-2">❌ Debolezze & Varchi Operativi:</p>
+                        <p class="text-gray-600 pl-2">Tariffe rigide, ambienti datati e assenza di cucina attrezzata per lunghe degenze sanitarie.</p>
+                    </div>
+
+                    <!-- Host Amatoriali -->
+                    <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-2 text-xs">
+                        <div class="flex justify-between items-center border-b border-gray-200 pb-2">
+                            <span class="font-bold text-gray-900 text-sm">Host Amatoriali su Airbnb/Booking</span>
+                            <span class="px-2 py-0.5 bg-amber-100 text-amber-800 rounded font-bold text-[10px]">Ampia Diffusione</span>
+                        </div>
+                        <p class="text-emerald-700 font-semibold">✔️ Punti di Forza:</p>
+                        <p class="text-gray-600 pl-2">Posizionamento diffuso nei quartieri centrali, prezzi d'ingresso competitivi.</p>
+                        <p class="text-rose-700 font-semibold mt-2">❌ Debolezze & Varchi Operativi:</p>
+                        <p class="text-gray-600 pl-2">Assenza di check-in automatico (Self check-in domotico), arredi di scarso pregio, scarsa reattività nelle tariffe dinamiche.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SEZIONE 4: DOMANDA & EVENTI ==================== -->
+        <section id="section-domanda" class="space-y-6 hidden">
+            <!-- Intro Card -->
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <h2 class="text-2xl font-bold text-gray-900">Motivazioni della Domanda & Date Strategiche 2025</h2>
+                <p class="text-gray-600 text-sm mt-1">
+                    I tre pilastri del turismo a Monza e le date chiave dell'anno in cui applicare politiche di prezzo aggressive e vincoli di soggiorno minimo.
+                </p>
+            </div>
+
+            <!-- The 3 Pillars Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm border-t-4 border-t-emerald-600 space-y-2">
+                    <span class="text-2xl">🏥</span>
+                    <h3 class="font-bold text-gray-900 text-sm">1. Turismo Sanitario (San Gerardo)</h3>
+                    <p class="text-xs text-gray-600 leading-relaxed">
+                        L'IRCCS Ospedale San Gerardo e il Centro Maria Letizia Verga attraggono pazienti e familiari da tutta Italia. Soggiorni medio-lunghi (15-30 giorni) a domanda anelastica.
+                    </p>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm border-t-4 border-t-rose-600 space-y-2">
+                    <span class="text-2xl">🏎️</span>
+                    <h3 class="font-bold text-gray-900 text-sm">2. Autodromo & F1 Motorsport</h3>
+                    <p class="text-xs text-gray-600 leading-relaxed">
+                        Il Gran Premio d'Italia porta oltre 400.000 presenze nel weekend. Rappresenta il picco di fatturato dove le tariffe notte quadruplicano con minimum stay di 4-5 notti.
+                    </p>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm border-t-4 border-t-sky-600 space-y-2">
+                    <span class="text-2xl">💼</span>
+                    <h3 class="font-bold text-gray-900 text-sm">3. Spillover Milano & Fiere</h3>
+                    <p class="text-xs text-gray-600 leading-relaxed">
+                        La saturazione degli hotel milanesi durante eventi come il Salone del Mobile o la Milano Fashion Week spinge la domanda verso Monza, collegata in 15 min di treno.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Event Calendar Filter System -->
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h3 class="text-base font-bold text-gray-900 flex items-center gap-2">
+                            <span>⚡</span> Calendario Opportunità & Date Strategiche 2025
+                        </h3>
+                        <p class="text-xs text-gray-500">Filtra le date azionabili per pianificare le restrizioni di prezzo e soggiorno minimo.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5 text-xs">
+                        <button onclick="filterEvents('all')" id="btn-filter-all" class="px-3 py-1 bg-slate-900 text-white rounded-md font-semibold">Tutti gli Eventi</button>
+                        <button onclick="filterEvents('f1')" id="btn-filter-f1" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-rose-100">Formula 1 & Motori</button>
+                        <button onclick="filterEvents('fair')" id="btn-filter-fair" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-sky-100">Spillover Milano</button>
+                    </div>
+                </div>
+
+                <!-- Event Cards Grid Container -->
+                <div id="eventCalendarGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SEZIONE 5: STRATEGIA & FISCO ==================== -->
+        <section id="section-strategia" class="space-y-6 hidden">
+            <!-- Intro Card -->
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <h2 class="text-2xl font-bold text-gray-900">Strategia d'Ingresso, Target & Fisco 2025/2026</h2>
+                <p class="text-gray-600 text-sm mt-1">
+                    Definizione del modello di business ottimale (Subaffitto vs Acquisto vs Property Management), posizionamento unico e quadro normativo aggiornato.
+                </p>
+            </div>
+
+            <!-- Investment Models Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs sm:text-sm">
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-slate-900 text-base">1. Rent-to-Rent (Subaffitto)</span>
+                        <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 font-bold rounded text-[10px]">Massimo ROI</span>
+                    </div>
+                    <p class="text-gray-600">Prendere in locazione un immobile 4+4 con autorizzazione al subaffitto e riaffittarlo a breve termine.</p>
+                    <ul class="space-y-1 text-gray-500 text-xs">
+                        <li>• Capex iniziale contenuto (€7k - €10k)</li>
+                        <li>• Rischio canone fisso mensile</li>
+                        <li>• ROI stimato su capitale: >40%</li>
+                    </ul>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-slate-900 text-base">2. Buy-to-Let (Acquisto)</span>
+                        <span class="px-2 py-0.5 bg-sky-100 text-sky-800 font-bold rounded text-[10px]">Patrimoniale</span>
+                    </div>
+                    <p class="text-gray-600">Acquisto diretto di bilocali in zone strategiche (San Gerardo / Parco) per la messa a reddito.</p>
+                    <ul class="space-y-1 text-gray-500 text-xs">
+                        <li>• Capex elevato (€160k - €210k)</li>
+                        <li>• Protezione del capitale e rivalutazione</li>
+                        <li>• Rendimento netto: 6,5% - 8,5%</li>
+                    </ul>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-slate-900 text-base">3. Property Management</span>
+                        <span class="px-2 py-0.5 bg-purple-100 text-purple-800 font-bold rounded text-[10px]">Rischio Zero</span>
+                    </div>
+                    <p class="text-gray-600">Gestione del patrimonio immobiliare di terzi in cambio di una commissione percentuale sugli incassi.</p>
+                    <ul class="space-y-1 text-gray-500 text-xs">
+                        <li>• Zero capitale immobiliare investito</li>
+                        <li>• Fee di gestione: 18% - 25% sul lordo</li>
+                        <li>• Scalabilità operativa elevata</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Tax Rules & Regulations 2025/2026 -->
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
+                <h3 class="text-base font-bold text-gray-900 flex items-center gap-2">
+                    <span>🏛️</span> Quadro Fiscale L. 199/2025 e Normativa CIN
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                    <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-1">
+                        <strong class="text-gray-900 font-bold text-sm">Cedolare Secca 21%</strong>
+                        <p class="text-gray-600">Applicabile al <strong>primo immobile</strong> destinato a locazione breve da persone fisiche.</p>
+                    </div>
+                    <div class="p-4 bg-amber-50 rounded-lg border border-amber-200 space-y-1">
+                        <strong class="text-amber-900 font-bold text-sm">Cedolare Secca 26%</strong>
+                        <p class="text-amber-800">Applicabile dal <strong>secondo al quarto immobile</strong> gestito da privato.</p>
+                    </div>
+                    <div class="p-4 bg-rose-50 rounded-lg border border-rose-200 space-y-1">
+                        <strong class="text-rose-900 font-bold text-sm">Presunzione d'Impresa (P.IVA)</strong>
+                        <p class="text-rose-800">Dal <strong>terzo/quarto immobile</strong> scatta l'obbligo di Partita IVA e contabilità d'impresa.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SEZIONE 6: PIANO & CALCOLATORE ROI ==================== -->
+        <section id="section-piano" class="space-y-6 hidden">
+            <!-- Intro Card -->
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <h2 class="text-2xl font-bold text-gray-900">Simulatore Finanziario ROI & Piano d'Azione</h2>
+                <p class="text-gray-600 text-sm mt-1">
+                    Calcola i rendimenti netti stimati per la tua operazione a Monza e consulta il piano di esecuzione in 5 mosse per entrare sul mercato.
+                </p>
+            </div>
+
+            <!-- Interactive ROI Calculator Card -->
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-6">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-100 pb-4">
+                    <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                        <span>🧮</span> Calcolatore Dinamico di Redditività Turistica
+                    </h3>
+                    <div class="inline-flex rounded-lg border border-gray-200 p-1 bg-gray-50 text-xs font-semibold">
+                        <button onclick="setCalcStrategy('r2r')" id="btn-calc-r2r" class="px-4 py-2 rounded-md bg-sky-600 text-white">Subaffitto (Rent-to-Rent)</button>
+                        <button onclick="setCalcStrategy('btl')" id="btn-calc-btl" class="px-4 py-2 rounded-md text-gray-700">Acquisto (Buy-to-Let)</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <!-- Inputs -->
+                    <div class="lg:col-span-6 space-y-4 text-xs sm:text-sm">
+                        <div>
+                            <div class="flex justify-between font-semibold text-gray-800 mb-1">
+                                <span>Prezzo Medio per Notte (ADR):</span>
+                                <span class="text-sky-700 font-extrabold text-base"><span id="calc-adr-val">115</span> €</span>
+                            </div>
+                            <input type="range" id="input-calc-adr" min="80" max="250" value="115" class="w-full h-2 bg-gray-200 rounded-lg cursor-pointer" oninput="runRoiCalculator()">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between font-semibold text-gray-800 mb-1">
+                                <span>Tasso di Occupazione Annuo:</span>
+                                <span class="text-sky-700 font-extrabold text-base"><span id="calc-occ-val">62</span> %</span>
+                            </div>
+                            <input type="range" id="input-calc-occ" min="30" max="85" value="62" class="w-full h-2 bg-gray-200 rounded-lg cursor-pointer" oninput="runRoiCalculator()">
+                        </div>
+
+                        <!-- Dynamic Specific Controls -->
+                        <div id="r2r-inputs-box" class="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
+                            <p class="font-bold text-gray-900">Parametri Operativi Subaffitto</p>
+                            <div>
+                                <label class="block font-semibold text-gray-700 text-xs mb-1">Canone Affitto Passivo Mensile (€):</label>
+                                <input type="number" id="input-r2r-rent" value="850" class="w-full p-2 border border-gray-300 rounded text-sm font-bold" oninput="runRoiCalculator()">
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-gray-700 text-xs mb-1">Investimento Iniziale / Arredo (€):</label>
+                                <input type="number" id="input-r2r-capex" value="8500" class="w-full p-2 border border-gray-300 rounded text-sm font-bold" oninput="runRoiCalculator()">
+                            </div>
+                        </div>
+
+                        <div id="btl-inputs-box" class="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3 hidden">
+                            <p class="font-bold text-gray-900">Parametri Operativi Acquisto</p>
+                            <div>
+                                <label class="block font-semibold text-gray-700 text-xs mb-1">Costo Acquisto + Ristrutturazione (€):</label>
+                                <input type="number" id="input-btl-cost" value="185000" class="w-full p-2 border border-gray-300 rounded text-sm font-bold" oninput="runRoiCalculator()">
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-gray-700 text-xs mb-1">Spese Condominiali & IMU Annue (€):</label>
+                                <input type="number" id="input-btl-fixed" value="2200" class="w-full p-2 border border-gray-300 rounded text-sm font-bold" oninput="runRoiCalculator()">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block font-semibold text-gray-800 text-xs mb-1">Regime Fiscale Selezionato:</label>
+                            <select id="input-calc-tax" class="w-full p-2 border border-gray-300 rounded text-xs font-semibold bg-white" onchange="runRoiCalculator()">
+                                <option value="0.21">Cedolare Secca 21% (1° Immobile)</option>
+                                <option value="0.26">Cedolare Secca 26% (2° Immobile)</option>
+                                <option value="0.30">Società / P.IVA (Stima ~30%)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Output Box -->
+                    <div class="lg:col-span-6 bg-slate-900 text-white p-6 rounded-xl flex flex-col justify-between space-y-6">
+                        <div>
+                            <p class="text-xs text-sky-400 font-bold uppercase tracking-wider">Proiezione Finanziaria Annua</p>
+                            <div class="mt-4 space-y-3 text-sm border-b border-slate-800 pb-4">
+                                <div class="flex justify-between">
+                                    <span class="text-slate-300">Incasso Lordo Annuo:</span>
+                                    <span class="font-bold text-white"><span id="out-gross-val">€ 26.020</span></span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-slate-300">OTA Commissioni & Pulizie (~22%):</span>
+                                    <span class="font-bold text-rose-400">- <span id="out-ota-val">€ 5.724</span></span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-slate-300">Costo Affitto / Fissi Annui:</span>
+                                    <span class="font-bold text-rose-400">- <span id="out-fixed-val">€ 10.200</span></span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-slate-300">Tassazione Prevista:</span>
+                                    <span class="font-bold text-rose-400">- <span id="out-tax-val">€ 2.120</span></span>
+                                </div>
+                            </div>
+
+                            <div class="mt-6 pt-2 flex justify-between items-end">
+                                <div>
+                                    <p class="text-xs text-emerald-400 font-bold uppercase">Utile Netto Annuo</p>
+                                    <p class="text-3xl font-extrabold text-emerald-400 mt-1"><span id="out-net-val">€ 7.976</span></p>
+                                    <p class="text-xs text-slate-400 mt-1">Cash Flow Mensile: <strong class="text-white"><span id="out-monthly-val">€ 665</span>/mese</strong></p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-xs text-slate-400 uppercase font-bold">Rendimento (ROI)</p>
+                                    <p class="text-2xl font-black text-amber-400 mt-1"><span id="out-roi-val">93.8%</span></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-3 bg-slate-800 rounded-lg text-[11px] text-slate-400 border border-slate-700">
+                            ℹ️ <em>In modalità Rent-to-Rent il ROI misura il ritorno sul capitale iniziale di avviamento (Capex). In Buy-to-Let calcola il rendimento netto sul capitale d'acquisto.</em>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Plan 5 Steps Checklist -->
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
+                <h3 class="text-base font-bold text-gray-900 flex items-center gap-2">
+                    <span>🚀</span> Piano d'Azione Pratico in 5 Mosse
+                </h3>
+                <div class="space-y-3 text-xs sm:text-sm">
+                    <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3">
+                        <span class="px-2 py-0.5 bg-sky-600 text-white font-bold rounded text-xs">Mossa 1</span>
+                        <div>
+                            <strong class="text-gray-900">Scouting dell'immobile target:</strong> Bilocale entro 500m dall'Ospedale San Gerardo o in Centro Storico con posto auto/box inclusi.
+                        </div>
+                    </div>
+                    <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3">
+                        <span class="px-2 py-0.5 bg-sky-600 text-white font-bold rounded text-xs">Mossa 2</span>
+                        <div>
+                            <strong class="text-gray-900">Allestimento oriented-hospitality:</strong> Arredamento moderno, divano letto di qualità, lavastoviglie, smart TV e serratura domotica per Self check-in 24/7.
+                        </div>
+                    </div>
+                    <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3">
+                        <span class="px-2 py-0.5 bg-sky-600 text-white font-bold rounded text-xs">Mossa 3</span>
+                        <div>
+                            <strong class="text-gray-900">Conformità Burocratica:</strong> SCIA al Comune di Monza, assegnazione Codice CIN, attivazione Portale Alloggiati e Tassa di Soggiorno.
+                        </div>
+                    </div>
+                    <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3">
+                        <span class="px-2 py-0.5 bg-sky-600 text-white font-bold rounded text-xs">Mossa 4</span>
+                        <div>
+                            <strong class="text-gray-900">Lancio e Dynamic Pricing:</strong> Annunci su Airbnb/Booking.com con foto professionali e algoritmi di prezzo settati sui picchi F1 e Salone del Mobile.
+                        </div>
+                    </div>
+                    <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3">
+                        <span class="px-2 py-0.5 bg-sky-600 text-white font-bold rounded text-xs">Mossa 5</span>
+                        <div>
+                            <strong class="text-gray-900">Convenzioni Sanitarie Locali:</strong> Accreditamento diretto con associazioni pazienti e reparti dell'IRCCS San Gerardo per occupazione continuativa a costo commissioni zero.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Data Definitions
+        const seasonalityData = {
+            months: ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'],
+            adr: [135, 159, 139, 145, 138, 137, 138, 150, 280, 139, 134, 141],
+            occ: [35.1, 40.5, 37.4, 52.0, 44.0, 41.3, 44.1, 41.1, 78.5, 41.0, 40.6, 40.6],
+            revpar: [47, 64, 52, 75, 60, 56, 61, 61, 220, 57, 54, 57]
+        };
+
+        const propertyDatabase = {
+            all: {
+                title: "Tutte le Tipologie (Panoramica Comparativa)",
+                badge: "Confronto Generale",
+                adr: "€50 - €850+",
+                occ: "20% - 70%",
+                desc: "Il grafico mostra il confronto diretto tra tutte le tipologie ricettive a Monza. I bilocali e gli affittacamere guidano per occupazione continuativa, mentre le ville e attici dominano le tariffe nei picchi F1.",
+                eval: "Bilocali e Trilocali offrono la stabilità finanziaria migliore sul mercato monzese."
+            },
+            room: {
+                title: "Stanza / Affittacamere",
+                badge: "Low Capex",
+                adr: "€50 - €75",
+                occ: "65% - 70%",
+                desc: "Stanze singole o doppie con bagno privato. Target primario formato da studenti, specializzandi medici e lavoratori temporanei dell'Ospedale San Gerardo.",
+                eval: "Bassi costi di ingresso e alta saturazione, ma tariffe per notte limitate."
+            },
+            bilocale: {
+                title: "Bilocale (1 Camera da Letto)",
+                badge: "SWEET SPOT INVESTITORI",
+                adr: "€90 - €140",
+                occ: "60% - 65%",
+                desc: "La tipologia di maggior successo a Monza. Ideale per famiglie di pazienti sanitari (lunghe degenze) e turisti del Gran Premio F1.",
+                eval: "MASSIMA REDDITIVITÀ NETTA: Bilancia costi gestionali e rendimento costante."
+            },
+            trilocale: {
+                title: "Trilocale (2 Camere da Letto)",
+                badge: "High Yield F1",
+                adr: "€150 - €220",
+                occ: "50% - 55%",
+                desc: "Alloggio capiente adatto a famiglie turistiche e piccoli gruppi di tifosi F1/motorsport. Ottimo potenziale di incasso durante i grandi eventi.",
+                eval: "Ottima alternativa per aumentare l'incasso nei picchi stagionali."
+            },
+            quadrilocale: {
+                title: "Quadrilocale / Attico",
+                badge: "Corporate & VIP",
+                adr: "€250 - €400",
+                occ: "35% - 40%",
+                desc: "Immobile di grande metratura destinato a manager trasfertisti o gruppi VIP per la Formula 1.",
+                eval: "Tariffe molto elevate nei picchi, ma elevato rischio di sfitto nei mesi invernali."
+            },
+            villa: {
+                title: "Villa Indipendente",
+                badge: "Luxury Motorsport",
+                adr: "€500 - €1.200+",
+                occ: "15% - 25%",
+                desc: "Strutture di lusso richieste da piloti, scuderie F1 e sponsor durante la settimana del Gran Premio d'Italia.",
+                eval: "Focus esclusivo sull'evento F1. Richiede strategia di prezzo mirata sui 3-4 picchi dell'anno."
+            }
+        };
+
+        const eventCalendarData = [
+            {
+                title: "Formula 1 Gran Premio d'Italia 2025",
+                date: "5 - 7 Settembre 2025",
+                cat: "f1",
+                surge: "+300% / +500%",
+                stay: "Min. 4-5 Notti",
+                desc: "L'evento dell'anno a Monza. Oltre 400.000 presenze. Tasso di occupazione cittadino prossimo al 100%."
+            },
+            {
+                title: "Monza Fuori GP & Eventi Cittadini",
+                date: "2 - 4 Settembre 2025",
+                cat: "f1",
+                surge: "+100% / +150%",
+                stay: "Min. 3 Notti",
+                desc: "Giornate di vigilia con concerti, parate e parchi aperti. Arrivi anticipati di staff e giornalisti."
+            },
+            {
+                title: "Salone del Mobile Milano (Spillover Monza)",
+                date: "Aprile 2025",
+                cat: "fair",
+                surge: "+150% / +200%",
+                stay: "Min. 3 Notti",
+                desc: "Saturazione ricettiva di Milano. Monza diventa hub strategico per visitatori grazie ai collegamenti ferroviari."
+            },
+            {
+                title: "Track Days & Gare Amatoriali Autodromo",
+                date: "Marzo - Maggio 2025",
+                cat: "f1",
+                surge: "+25% / +40%",
+                stay: "Min. 2 Notti",
+                desc: "Weekend di gare GT e sessioni private di piloti amatoriali nel parco di Monza."
+            }
+        ];
+
+        // Global Chart Instances
+        let seasonalityChart = null;
+        let originChart = null;
+        let supplyChart = null;
+        let propertyDynamicChart = null;
+        let activeCalcStrategy = 'r2r';
+
+        // DOM Initialization
+        document.addEventListener('DOMContentLoaded', () => {
+            initSeasonalityChart();
+            initOriginChart();
+            initSupplyChart();
+            initPropertyDynamicChart();
+            renderEventsGrid('all');
+            runRoiCalculator();
+        });
+
+        // Sidebar Navigation & Mobile Toggle
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('hidden');
+        }
+
+        function showSection(sectionId) {
+            const sections = ['cruscotto', 'mercato', 'competitiva', 'domanda', 'strategia', 'piano'];
+            sections.forEach(s => {
+                const secEl = document.getElementById('section-' + s);
+                const navBtn = document.getElementById('nav-' + s);
+
+                if (s === sectionId) {
+                    secEl.classList.remove('hidden');
+                    navBtn.classList.add('nav-active');
+                } else {
+                    secEl.classList.add('hidden');
+                    navBtn.classList.remove('nav-active');
+                }
+            });
+
+            // Close sidebar on mobile after click
+            if (window.innerWidth < 1024) {
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('sidebar-overlay');
+                sidebar.classList.remove('open');
+                overlay.classList.add('hidden');
+            }
+        }
+
+        // Seasonality Chart Initialization
+        function initSeasonalityChart() {
+            const ctx = document.getElementById('seasonalityChart').getContext('2d');
+            seasonalityChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: seasonalityData.months,
+                    datasets: [{
+                        label: 'ADR (€)',
+                        data: seasonalityData.adr,
+                        borderColor: '#0284c7',
+                        backgroundColor: 'rgba(2, 132, 199, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        function updateSeasonalityMetric(metric) {
+            document.getElementById('btn-season-adr').className = "px-3 py-1.5 rounded-md text-gray-600";
+            document.getElementById('btn-season-occ').className = "px-3 py-1.5 rounded-md text-gray-600";
+            document.getElementById('btn-season-revpar').className = "px-3 py-1.5 rounded-md text-gray-600";
+
+            if (metric === 'adr') {
+                document.getElementById('btn-season-adr').className = "px-3 py-1.5 rounded-md bg-white shadow-sm text-sky-700 font-bold";
+                seasonalityChart.data.datasets[0].data = seasonalityData.adr;
+                seasonalityChart.data.datasets[0].label = 'ADR (€)';
+                seasonalityChart.data.datasets[0].borderColor = '#0284c7';
+                seasonalityChart.data.datasets[0].backgroundColor = 'rgba(2, 132, 199, 0.1)';
+            } else if (metric === 'occ') {
+                document.getElementById('btn-season-occ').className = "px-3 py-1.5 rounded-md bg-white shadow-sm text-sky-700 font-bold";
+                seasonalityChart.data.datasets[0].data = seasonalityData.occ;
+                seasonalityChart.data.datasets[0].label = 'Occupazione (%)';
+                seasonalityChart.data.datasets[0].borderColor = '#059669';
+                seasonalityChart.data.datasets[0].backgroundColor = 'rgba(5, 150, 105, 0.1)';
+            } else if (metric === 'revpar') {
+                document.getElementById('btn-season-revpar').className = "px-3 py-1.5 rounded-md bg-white shadow-sm text-sky-700 font-bold";
+                seasonalityChart.data.datasets[0].data = seasonalityData.revpar;
+                seasonalityChart.data.datasets[0].label = 'RevPAR (€)';
+                seasonalityChart.data.datasets[0].borderColor = '#d97706';
+                seasonalityChart.data.datasets[0].backgroundColor = 'rgba(217, 119, 6, 0.1)';
+            }
+            seasonalityChart.update();
+        }
+
+        // Origin Chart (Doughnut)
+        function initOriginChart() {
+            const ctx = document.getElementById('originChart').getContext('2d');
+            originChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Germania & Nord Europa', 'Regno Unito & USA', 'Italia (Sanitario/Business)', 'Altri Paesi Estero'],
+                    datasets: [{
+                        data: [35, 29, 24, 12],
+                        backgroundColor: ['#0284c7', '#38bdf8', '#059669', '#cbd5e1']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        // Supply Chart (Bar)
+        function initSupplyChart() {
+            const ctx = document.getElementById('supplyChart').getContext('2d');
+            supplyChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Appartamenti Locazione Breve', 'B&B e Affittacamere', 'Hotel 3-4 Stelle', 'Residence Sanitari'],
+                    datasets: [{
+                        label: 'Unità / Strutture Attive',
+                        data: [280, 85, 22, 14],
+                        backgroundColor: ['#0284c7', '#38bdf8', '#64748b', '#059669']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        // Interactive Property Analysis Dynamic Chart
+        function initPropertyDynamicChart() {
+            const ctx = document.getElementById('propertyDynamicChart').getContext('2d');
+            propertyDynamicChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Stanza', 'Bilocale', 'Trilocale', 'Quadrilocale', 'Villa'],
+                    datasets: [
+                        {
+                            label: 'ADR Medio (€)',
+                            data: [62, 115, 185, 325, 850],
+                            backgroundColor: '#0284c7',
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Occupazione (%)',
+                            data: [67, 62, 52, 38, 20],
+                            backgroundColor: '#059669',
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            position: 'left',
+                            title: { display: true, text: 'ADR (€)' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            min: 0,
+                            max: 100,
+                            title: { display: true, text: 'Occupazione (%)' },
+                            grid: { drawOnChartArea: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update Dynamic Property Selector Details
+        function updatePropertyAnalysis() {
+            const key = document.getElementById('propertyTypeSelector').value;
+            const data = propertyDatabase[key];
+
+            document.getElementById('prop-badge').innerText = data.badge;
+            document.getElementById('prop-title').innerText = data.title;
+            document.getElementById('prop-desc').innerText = data.desc;
+            document.getElementById('prop-adr').innerText = data.adr;
+            document.getElementById('prop-occ').innerText = data.occ;
+            document.getElementById('prop-eval').innerText = data.eval;
+
+            // Highlight bar in chart if single option
+            if (key === 'all') {
+                propertyDynamicChart.data.datasets[0].backgroundColor = ['#0284c7', '#0284c7', '#0284c7', '#0284c7', '#0284c7'];
+            } else {
+                const keysIndex = ['room', 'bilocale', 'trilocale', 'quadrilocale', 'villa'];
+                const idx = keysIndex.indexOf(key);
+                const colors = ['#cbd5e1', '#cbd5e1', '#cbd5e1', '#cbd5e1', '#cbd5e1'];
+                if (idx !== -1) colors[idx] = '#0284c7';
+                propertyDynamicChart.data.datasets[0].backgroundColor = colors;
+            }
+            propertyDynamicChart.update();
+        }
+
+        // Render Events Grid
+        function renderEventsGrid(cat) {
+            const grid = document.getElementById('eventCalendarGrid');
+            grid.innerHTML = '';
+
+            const items = cat === 'all' ? eventCalendarData : eventCalendarData.filter(e => e.cat === cat);
+
+            items.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "p-4 bg-gray-50 border border-gray-200 rounded-lg space-y-2 text-xs";
+                card.innerHTML = `
+                    <div class="flex justify-between items-start gap-2">
+                        <strong class="text-gray-900 text-sm">${item.title}</strong>
+                        <span class="px-2 py-0.5 bg-rose-700 text-white font-bold rounded text-[10px] whitespace-nowrap">${item.surge}</span>
+                    </div>
+                    <p class="text-sky-700 font-bold">📅 ${item.date}</p>
+                    <p class="text-gray-600"><strong>Soggiorno Minimo:</strong> ${item.stay}</p>
+                    <p class="text-gray-500 mt-1">${item.desc}</p>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function filterEvents(cat) {
+            document.getElementById('btn-filter-all').className = "px-3 py-1 bg-gray-100 text-gray-700 rounded-md";
+            document.getElementById('btn-filter-f1').className = "px-3 py-1 bg-gray-100 text-gray-700 rounded-md";
+            document.getElementById('btn-filter-fair').className = "px-3 py-1 bg-gray-100 text-gray-700 rounded-md";
+
+            if (cat === 'all') document.getElementById('btn-filter-all').className = "px-3 py-1 bg-slate-900 text-white rounded-md font-semibold";
+            if (cat === 'f1') document.getElementById('btn-filter-f1').className = "px-3 py-1 bg-rose-700 text-white rounded-md font-semibold";
+            if (cat === 'fair') document.getElementById('btn-filter-fair').className = "px-3 py-1 bg-sky-600 text-white rounded-md font-semibold";
+
+            renderEventsGrid(cat);
+        }
+
+        // ROI Calculator Strategy Toggle
+        function setCalcStrategy(strat) {
+            activeCalcStrategy = strat;
+            const btnR2r = document.getElementById('btn-calc-r2r');
+            const btnBtl = document.getElementById('btn-calc-btl');
+            const boxR2r = document.getElementById('r2r-inputs-box');
+            const boxBtl = document.getElementById('btl-inputs-box');
+
+            if (strat === 'r2r') {
+                btnR2r.className = "px-4 py-2 rounded-md bg-sky-600 text-white";
+                btnBtl.className = "px-4 py-2 rounded-md text-gray-700";
+                boxR2r.classList.remove('hidden');
+                boxBtl.classList.add('hidden');
+            } else {
+                btnBtl.className = "px-4 py-2 rounded-md bg-sky-600 text-white";
+                btnR2r.className = "px-4 py-2 rounded-md text-gray-700";
+                boxBtl.classList.remove('hidden');
+                boxR2r.classList.add('hidden');
+            }
+            runRoiCalculator();
+        }
+
+        // ROI Calculator Math
+        function runRoiCalculator() {
+            const adr = parseFloat(document.getElementById('input-calc-adr').value);
+            const occ = parseFloat(document.getElementById('input-calc-occ').value);
+            const taxRate = parseFloat(document.getElementById('input-calc-tax').value);
+
+            document.getElementById('calc-adr-val').innerText = adr;
+            document.getElementById('calc-occ-val').innerText = occ;
+
+            const nights = 365 * (occ / 100);
+            const gross = adr * nights;
+            const ota = gross * 0.22;
+
+            let fixedCost = 0;
+            let capital = 1;
+
+            if (activeCalcStrategy === 'r2r') {
+                const rent = parseFloat(document.getElementById('input-r2r-rent').value) || 0;
+                fixedCost = rent * 12;
+                capital = parseFloat(document.getElementById('input-r2r-capex').value) || 8500;
+            } else {
+                fixedCost = parseFloat(document.getElementById('input-btl-fixed').value) || 0;
+                capital = parseFloat(document.getElementById('input-btl-cost').value) || 185000;
+            }
+
+            const taxable = Math.max(0, gross - ota - (activeCalcStrategy === 'r2r' ? fixedCost : 0));
+            const tax = taxable * taxRate;
+            const net = gross - ota - fixedCost - tax;
+            const monthlyNet = net / 12;
+            const roi = (net / capital) * 100;
+
+            document.getElementById('out-gross-val').innerText = '€ ' + Math.round(gross).toLocaleString('it-IT');
+            document.getElementById('out-ota-val').innerText = '€ ' + Math.round(ota).toLocaleString('it-IT');
+            document.getElementById('out-fixed-val').innerText = '€ ' + Math.round(fixedCost).toLocaleString('it-IT');
+            document.getElementById('out-tax-val').innerText = '€ ' + Math.round(tax).toLocaleString('it-IT');
+            document.getElementById('out-net-val').innerText = '€ ' + Math.round(net).toLocaleString('it-IT');
+            document.getElementById('out-monthly-val').innerText = '€ ' + Math.round(monthlyNet).toLocaleString('it-IT');
+            document.getElementById('out-roi-val').innerText = roi.toFixed(1) + '%';
+        }
+    </script>
+</body>
+</html>
